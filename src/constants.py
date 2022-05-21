@@ -54,6 +54,3 @@ class Constants:
          'study': 1,
          'transport': 0,
          'work': 1}
-
-
-print(Constants.init_data_col_name_mappings)

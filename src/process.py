@@ -19,6 +19,7 @@ class DataStorage:
             self.answers = answers
         else:
             self.data_schedule = self._base_pipeline(data)
+            self.sleep = self._sleep_from_schedule(self.data_schedule)
 
     @staticmethod
     def _naming_and_types(data: pd.DataFrame) -> pd.DataFrame:
@@ -42,7 +43,7 @@ class DataStorage:
         data['dur'] = data['dur'] - pd.to_timedelta(data['dur'].dt.days, unit='d')
 
         data['minutes'] = data.dur.dt.total_seconds() / 60
-        data['date'] = data.begin.dt.date
+        data['date'] = pd.to_datetime(data.begin.dt.date)
 
         data = data.drop('dur', axis=1)
 
@@ -85,8 +86,27 @@ class DataStorage:
         return data
 
 
-data_init = pd.read_csv('D:/IT stuff/PY/Хакатон ИКТ 4/future_design_hackaton_4/data/report_initial.csv')
+    @staticmethod
+    def _sleep_from_schedule(data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Get sleep time per day based on scheduled data.
+        :param data: Base-preprocessed dataframe.
+        :type data: pd.DataFrame
+        :return: Table with two columns: date and sleep in minutes.
+        :rtype: pd.DataFrame
+        """
+        data = data.groupby('date').sum()
+        data['minutes'] = 24 * 60 - data.minutes
 
-a = DataStorage(data=data_init)
+        return pd.DataFrame(data['minutes'])
 
-print(0)
+    @property
+    def _prod_from_schedule(self) -> pd.DataFrame:
+        data = self.data_schedule.groupby(['date', 'isprod']).sum()['minutes'].reset_index('isprod')
+        return data
+
+# data_init = pd.read_csv('D:/IT stuff/PY/Хакатон ИКТ 4/future_design_hackaton_4/data/report_initial.csv')
+#
+# a = DataStorage(data=data_init)
+#
+# print(0)
