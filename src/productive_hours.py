@@ -8,17 +8,11 @@ Original file is located at
 """
 import random
 
-import tensorflow as tf
-import numpy as np
 import pandas as pd
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import itertools
 import datetime
 import warnings
 from collections import namedtuple
-from functools import reduce
-import process
+
 
 warnings.filterwarnings('ignore')
 

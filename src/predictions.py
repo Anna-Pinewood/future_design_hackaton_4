@@ -241,10 +241,8 @@ def make_train_test(df2_prod0):
 
 
 # Построили модель
-def create_model(df2_prod0, model = None):
-  # df2_prod0 - nonprod
-  if model is not None:
-    return model
+def create_model(df2_prod0):
+  # df2_prod0 - DataStorage.nonprod
 
   X_train,X_test,y_train,y_test = make_train_test(df2_prod0)
   random_forest = RandomForestRegressor()
@@ -256,7 +254,7 @@ def create_model(df2_prod0, model = None):
   random_forest.fit(X_train,y_train)
 
   y_pred = random_forest.predict(X_test)
-
+  MODEL_BURN = random_forest
   return random_forest
 
 
@@ -265,8 +263,7 @@ def prediction_burnout(model, data):
   return y_pred
 
 
-def plot_pred_past(df2_prod0, model=None):
-    model_ = create_model(df2_prod0, model)
+def plot_pred_past(model_, df2_prod0):
     data_past = df2_prod0.tail(14)/60
     data_past.reset_index(inplace=True)
     data_past = data_past.rename(columns={'index': 'date'})
