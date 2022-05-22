@@ -66,41 +66,22 @@ def get_df2_full1(data):
   return df2_full1
 
 
-def get_df2_prod0(data):
-    df2_prod0 = data[data['isprod'] == 0]
-    df2_prod0.head()
-    df2_prod0.drop('isprod', axis=1, inplace=True)
 
-    return df2_prod0
 
 # def get_df2_by_days_sleep(data):
 #   df2_by_days_sleep=data[data.act=='sleep'].loc[:,['date','minutes']]
 #   return df2_by_days_sleep
 
 
-def get_df2_prod1(data):
-    df2_prod1 = data[data['isprod'] == 1]
-    df2_prod1.head()
-    df2_prod1.drop('isprod', axis=1, inplace=True)
-
-    return df2_prod1
 
 
-def get_last_anomalies(df2_prod, df2_full, df2_sleep_night,df2_days_sleep):
-    df2_prod0 = get_df2_prod0(df2_prod)
-
-    df2_full0 = get_df2_full0(df2_full)
-
-    df2_full1 = get_df2_full1(df2_full)
-
-    df2_prod1 = get_df2_prod1(df2_prod)
+def get_last_anomalies(df2_prod0, df2_prod1, df2_ful1, df2_ful0, df2_sleep_night):
 
     # df2_sleep_night = getnightsleeptime(df2_by_days)
 
     # df2_days_sleep = get_df2_by_days_sleep(df2_by_days)
 
     # Минимальные часы сна
-    df2_by_days_sleep_night_minimum = minimumsleep(df2_sleep_night)
     # Максимальные часы сна
     df2_by_days_sleep_night_maximum = maximumsleep(df2_sleep_night)
 
@@ -108,20 +89,20 @@ def get_last_anomalies(df2_prod, df2_full, df2_sleep_night,df2_days_sleep):
     df2_prod0_anomaly = findanomalyboxplot(df2_prod0)
 
     # Избыток notfullfill  часов
-    df2_full0_anomaly = findanomalyboxplot(df2_full0)
+    df2_full0_anomaly = findanomalyboxplot(df2_ful0)
 
     # Переизбыток продуктивных часов
     df2_prod1_anomaly = findanomalyzindex(df2_prod1)
 
     # Аномальный дневной сон
-    df2_by_days_sleep_anomaly = maximumsleep(df2_days_sleep)
+   # df2_by_days_sleep_anomaly = maximumsleep(df2_days_sleep)
 
     # Получаем даты выгораний
     # Избыток непродуктивных часов - выгорание
     df2_anomalies = df2_prod0_anomaly.loc[:, ['date']]
 
     #  Избыток дневного сна - выгорание
-    df2_anomalies = df2_anomalies.append(df2_by_days_sleep_anomaly.loc[:, ['date']], ignore_index=True)
+  #  df2_anomalies = df2_anomalies.append(df2_by_days_sleep_anomaly.loc[:, ['date']], ignore_index=True)
 
     # Избыток ночного сна - выгорание
     df2_anomalies = df2_anomalies.append(df2_by_days_sleep_night_maximum.loc[:, ['date']], ignore_index=True)
@@ -222,18 +203,14 @@ def get_df_burnout(df_anom, df2_prod, df2_full, df2_sleep_night,df2_days_sleep):
     df2_burnout.drop_duplicates(inplace=True)
     df2_burnout = df2_burnout.reset_index(drop=True)
 
-    df2_burnout
 
-
-def make_train_test(df2_prod):
-    df2_prod0 = get_df2_prod0(df2_prod)
+def make_train_test(df2_prod0):
     df2_prod0_new = df2_prod0.copy()
-    df2_prod0_new.date = pd.to_datetime(df2_prod0_new['date'])
-    df2_prod0_new.index = pd.to_datetime(df2_prod0_new.date)
-    df2_prod0_new = df2_prod0_new.iloc[:, [1]]
+    # df2_prod0_new.date = pd.to_datetime(df2_prod0_new['date'])
+    # df2_prod0_new.index = pd.to_datetime(df2_prod0_new.date)
 
     df2_test = df2_prod0_new.tail(14)
-    df2_train = df2_prod0_new.iloc[:-14, :]
+    df2_train = df2_prod0_new.iloc[:df2_prod0_new.shape[0]-14, :]
 
     # Transform train data
     data = df2_train
@@ -274,16 +251,12 @@ def create_model(df2_prod0, model = None):
   tuned_parameters  = {'n_estimators':[5,10,15,20],'max_depth':[2,4,6,8,10],'min_samples_split':np.arange(1,10)}
   clf1 = GridSearchCV(random_forest,tuned_parameters)
   clf1.fit(X_train,y_train)
-  params = clf1.best_estimator_
   random_forest = RandomForestRegressor(**clf1.best_params_)
+
   random_forest.fit(X_train,y_train)
 
   y_pred = random_forest.predict(X_test)
-  plt.figure(figsize=(15, 7))
-  plt.plot(y_pred, "r", label="prediction")
-  plt.plot(y_test.values, label="actual")
-  plt.legend(loc="best")
-  plt.grid(True)
+
   return random_forest
 
 
@@ -294,11 +267,15 @@ def prediction_burnout(model, data):
 
 def plot_pred_past(df2_prod0, model=None):
     model_ = create_model(df2_prod0, model)
-    data_past = df2_prod0.tail(14)
+    data_past = df2_prod0.tail(14)/60
+    data_past.reset_index(inplace=True)
+    data_past = data_past.rename(columns={'index': 'date'})
     today = pd.to_datetime('today').normalize().date()
     date_range_ = pd.date_range(start=today, periods=14)
     data_pred = pd.DataFrame(columns=['date'])
     data_pred.date = date_range_
+
+    data_pred['minutes'] = None
 
     data_res = data_past.append(data_pred)
     data_res.date = pd.to_datetime(data_res.date)
@@ -314,11 +291,10 @@ def plot_pred_past(df2_prod0, model=None):
 
     x_pred = x_pred.reset_index(drop=True)
     y_pred1 = [None] * 14 + prediction_burnout(model_, x_pred).tolist()
-    print(y_pred1)
 
     return (x_dates, y_past.values.tolist(), "Past"), (x_dates, y_pred1, "Pred")
 
-a = DataStorage(answers={'procrastination': ('1',), 'work': ('Учеба',), 'workdaysleep': ('1:00',), 'weekendsleep': ('3:00',), 'ideal': ('2',)})
-
-print(plot_pred_past.nonprod)
+# a = DataStorage(answers={'procrastination': ('1',), 'work': ('Учеба',), 'workdaysleep': ('1:00',), 'weekendsleep': ('3:00',), 'ideal': ('2',)})
+#
+# print(plot_pred_past(a.nonprod))
 
