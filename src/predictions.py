@@ -1,0 +1,187 @@
+import pandas as pd
+import seaborn as sns
+import numpy as np
+from scipy import stats
+import numpy as np
+import matplotlib.pyplot as plt
+from datetime import datetime
+from scipy.stats import ks_2samp
+from statistics import mean
+from fbprophet import Prophet
+
+# df2_by_days0 = pd.read_csv("df2_by_days.csv")
+# df2_full = pd.read_csv("df2_full.csv")
+# df2_prod = pd.read_csv("df2_prod.csv")
+
+def findanomalyboxplot(data):
+
+    Q1 = data['minutes'].quantile(0.25)
+    Q3 = data['minutes'].quantile(0.75)
+    IQR = Q3 - Q1
+    data_anomaly= data[(data['minutes'] < Q1-1.5*IQR ) | (data['minutes'] > Q3+1.5*IQR)==True]
+    return data_anomaly
+
+def findanomalyzindex(data):
+  return data[(np.abs(stats.zscore(data['minutes']))) > 3]
+
+
+def getnightsleeptime(data):
+    date = data.date.unique()
+    data_sleep_night = pd.DataFrame(columns=['date', 'minutes'])
+    data_sleep_night.date = date
+    for day in date:
+        night_sleep_time = 24 * 60 - data[data.date == day].minutes.sum()
+        data_sleep_night['minutes'][data_sleep_night.date == day] = night_sleep_time
+
+    return data_sleep_night
+
+def minimumsleep(data):
+    Q1 = data['minutes'].quantile(0.25)
+    Q3 = data['minutes'].quantile(0.75)
+    IQR = Q3 - Q1
+    data_anomaly= data[(data['minutes'] < Q1-1.5*IQR )==True]
+    return data_anomaly
+
+def maximumsleep(data):
+    # sns.boxplot(data['minutes'])
+    Q1 = data['minutes'].quantile(0.25)
+    Q3 = data['minutes'].quantile(0.75)
+    IQR = Q3 - Q1
+    data_anomaly= data[(data['minutes'] > Q3+1.5*IQR )==True]
+    return data_anomaly
+
+def get_df2_full0(data):
+  df2_full0 = data[data.isfull==False]
+  df2_full0.head()
+  df2_full0.drop('isfull',axis=1,inplace=True)
+  return df2_full0
+
+def get_df2_full1(data):
+  df2_full1 = data[data.isfull==True]
+  df2_full1.head()
+  df2_full1.drop('isfull',axis=1,inplace=True)
+  return df2_full1
+
+
+def get_df2_prod0(data):
+    df2_prod0 = data[data['isprod'] == 0]
+    df2_prod0.head()
+    df2_prod0.drop('isprod', axis=1, inplace=True)
+
+    return df2_prod0
+
+def get_df2_by_days_sleep(data):
+  df2_by_days_sleep=data[data.act=='sleep'].loc[:,['date','minutes']]
+  return df2_by_days_sleep
+
+
+def get_df2_prod1(data):
+    df2_prod1 = data[data['isprod'] == 1]
+    df2_prod1.head()
+    df2_prod1.drop('isprod', axis=1, inplace=True)
+
+    return df2_prod1
+
+
+def get_last_anomalies(df2_by_days, df2_prod, df2_full):
+    df2_prod0 = get_df2_prod0(df2_prod)
+
+    df2_full0 = get_df2_full0(df2_full)
+
+    df2_full1 = get_df2_full1(df2_full)
+
+    df2_prod1 = get_df2_prod1(df2_prod)
+
+    df2_by_days_sleep_night = getnightsleeptime(df2_by_days)
+
+    df2_by_days_sleep = get_df2_by_days_sleep(df2_by_days)
+
+    # Минимальные часы сна
+    df2_by_days_sleep_night_minimum = minimumsleep(df2_by_days_sleep_night)
+    # Максимальные часы сна
+    df2_by_days_sleep_night_maximum = maximumsleep(df2_by_days_sleep_night)
+
+    # Избыток непродуктивных часов
+    df2_prod0_anomaly = findanomalyboxplot(df2_prod0)
+
+    # Избыток notfullfill  часов
+    df2_full0_anomaly = findanomalyboxplot(df2_full0)
+
+    # Переизбыток продуктивных часов
+    df2_prod1_anomaly = findanomalyzindex(df2_prod1)
+
+    # Аномальный дневной сон
+    df2_by_days_sleep_anomaly = maximumsleep(df2_by_days_sleep)
+
+    # Получаем даты выгораний
+    # Избыток непродуктивных часов - выгорание
+    df2_anomalies = df2_prod0_anomaly.loc[:, ['date']]
+
+    #  Избыток дневного сна - выгорание
+    df2_anomalies = df2_anomalies.append(df2_by_days_sleep_anomaly.loc[:, ['date']], ignore_index=True)
+
+    # Избыток ночного сна - выгорание
+    df2_anomalies = df2_anomalies.append(df2_by_days_sleep_night_maximum.loc[:, ['date']], ignore_index=True)
+
+    # Переделаем из строки дату
+    df2_anomalies['date'] = pd.to_datetime(df2_anomalies['date'])
+
+    df2_anomalies = df2_anomalies.sort_values(by='date')
+
+    df2_anomalies.drop_duplicates(inplace=True)
+    df2_anomalies = df2_anomalies.reset_index(drop=True)
+
+    for i in range(len(df2_anomalies) - 1):
+
+        if (df2_anomalies.iloc[i + 1, :] - df2_anomalies.iloc[i, :]).date.days <= 2:
+            df2_anomalies.iloc[i + 1, :] = df2_anomalies.iloc[i, :]
+
+    df2_anomalies.drop_duplicates(inplace=True)
+    df2_anomalies = df2_anomalies.reset_index(drop=True)
+
+    # print(df2_anomalies)
+    return df2_anomalies
+
+def first_window(windowlength, day_anomaly, df2_prod0):
+
+  data_first_window=pd.DataFrame(columns=['date','minutes'])
+  for day in df2_prod0.date:
+    if((day_anomaly - pd.to_datetime(day)).days<=windowlength and (day_anomaly - pd.to_datetime(day)).days>0):
+      data_first_window=data_first_window.append(df2_prod0[df2_prod0.date==day])
+  return data_first_window
+
+
+def second_window(windowlength, day_anomaly, df2_prod0):
+
+  data_second_window=pd.DataFrame(columns=['date','minutes'])
+  for day in df2_prod0.date:
+    if((day_anomaly - pd.to_datetime(day)).days<=windowlength*2 and (day_anomaly - pd.to_datetime(day)).days>windowlength):
+      data_second_window=data_second_window.append(df2_prod0[df2_prod0.date==day])
+  return data_second_window
+
+
+def get_length_window(day,df2_prod0):
+  for i in range(2,8):
+    windowl=i
+    data_first_window = first_window(windowl,day,df2_prod0)
+    data_second_window = second_window(windowl,day,df2_prod0)
+    p_value = ks_2samp(np.array(data_first_window.minutes) , np.array(data_second_window.minutes)).pvalue
+    if (p_value>0.05):
+      break
+  return windowl
+
+
+def get_opt_window(df2_anomalies, df2_prod0):
+    window_l = []
+
+    df2_anomalies.date = pd.to_datetime(df2_anomalies.date)
+    for day in df2_anomalies.date:
+        wl = get_length_window(day, df2_prod0)
+        window_l.append(wl)
+
+    return window_l[len(window_l) // 2]
+
+
+
+
+
