@@ -291,6 +291,46 @@ def plot_pred_past(model_, df2_prod0):
 
     return (x_dates, y_past.values.tolist(), "Past"), (x_dates, y_pred1, "Pred")
 
+def first_burnout(df2_prod0,df2_prod1, df2_ful1, df2_ful0, df2_sleep_night, model=None):
+  random_forest = create_model(df2_prod0,model)
+  today = pd.to_datetime('today').normalize().date()
+  date_range_ = pd.date_range(start=today, periods=14)
+  data_pred =pd.DataFrame(columns=['date'] )
+  data_pred.date=date_range_
+  date=date_range_
+  data=data_pred
+  data.index=data_pred.date
+  data.index = data.index.to_pydatetime()
+  data["day"] = data.index.day
+  data["weekday"] = data.index.weekday
+  data["month"] = data.index.month
+  x_pred= data.loc[:,['day',	'weekday',	'month']]
+  x_pred= x_pred.reset_index(drop=True)
+  y_pred1 =prediction_burnout(random_forest, x_pred).tolist()
+  df=pd.DataFrame(data_pred.index , columns=['date'])
+  df['minutes']=y_pred1
+  df_pred_burnout = findanomalyboxplot(df)
+  if (df_pred_burnout.empty):
+    df_anom = get_last_anomalies(df2_prod0, df2_prod1, df2_ful1, df2_ful0, df2_sleep_night)
+    wl = get_opt_window(df_anom, df2_prod0)
+    pvalue =0
+    index_window=-1
+    for i in range(0,12):
+      first_window = df.iloc[i:i+wl,:]
+      second_window = df.iloc[i+wl:i+2*wl,:]
+      pvalue = ks_2samp(np.array(first_window.minutes) , np.array(second_window.minutes)).pvalue
+      if (pvalue>=0.05):
+        index_window=wl+i
+        break
+    if (pvalue>0):
+      return  "Ближайшая спрогнозированная дата выгорания {}".format(df[df.index==index_window].date.tolist()[0].strftime('%Y-%m-%d'))
+      # x_dates = [d.strftime('%Y-%m-%d')
+    else:
+      return "В ближайшие две недели выгораний не ожидается"
+  else:
+    return "Ближайшая спрогнозированная дата выгорания {}".format(df_pred_burnout.loc[0,:].tolist()[0].strftime('%Y-%m-%d'))
+
+
 # a = DataStorage(answers={'procrastination': ('1',), 'work': ('Учеба',), 'workdaysleep': ('1:00',), 'weekendsleep': ('3:00',), 'ideal': ('2',)})
 #
 # print(plot_pred_past(a.nonprod))
