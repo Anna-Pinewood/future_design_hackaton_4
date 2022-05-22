@@ -10,10 +10,10 @@ def get_data_main_plot(isprod: pd.DataFrame,
                        sleep: pd.DataFrame):
     result = []
     result.append((plot_data_curve(isprod)[0], plot_data_curve(isprod)[1], 'Productive time'))
-    result.append((plot_data_curve(nonprod),plot_data_curve(isprod)[1], 'Unproductive time'))
-    result.append((plot_data_curve(isful),plot_data_curve(isprod)[1], 'Fulfilling time'))
-    result.append((plot_data_curve(nonful),plot_data_curve(isprod)[1], 'Devastating time'))
-    result.append((plot_data_curve(sleep), plot_data_curve(isprod)[1],'Sleep time'))
+    result.append((plot_data_curve(nonprod),plot_data_curve(nonprod)[1], 'Unproductive time'))
+    result.append((plot_data_curve(isful),plot_data_curve(isful)[1], 'Fulfilling time'))
+    result.append((plot_data_curve(nonful),plot_data_curve(nonful)[1], 'Devastating time'))
+    result.append((plot_data_curve(sleep), plot_data_curve(sleep)[1],'Sleep time'))
     return result
 def plot_data_curve(data: pd.DataFrame) -> Tuple[List[str], List[float]]:
     end = (data.index[-1]).strftime('%Y-%m-%d')
