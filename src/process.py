@@ -2,6 +2,7 @@ import pandas as pd
 import datetime
 from typing import Any, Dict, Optional, List
 from constants import Constants
+from utils import generate_all
 import numpy as np
 
 class DataStorage:
@@ -21,6 +22,16 @@ class DataStorage:
         if data is None:
             self.upload = False
             self.answers = answers
+            ideal_score = int(answers['ideal'][0])
+            procr_score = int(answers['procrastination'][0])
+            work_status = Constants.questionnaire_act_mappings[answers['work'][0]]
+            (self.isprod,
+            self.nonprod,
+            self.isful,
+            self.nonful,
+            self.sleep) = generate_all(work_status,
+                                       ideal_score,
+                                       procr_score)
 
         else:
             self.data_schedule = self._base_pipeline(data)
@@ -53,7 +64,7 @@ class DataStorage:
         data['dur'] = data['dur'] - pd.to_timedelta(data['dur'].dt.days, unit='d')
 
         data['minutes'] = data.dur.dt.total_seconds() / 60
-        data['date'] = pd.to_datetime(data.begin.dt.date)
+        data['date'] = data.begin.dt.date
 
         data = data.drop('dur', axis=1)
 
@@ -145,12 +156,3 @@ class DataStorage:
         nonful.index = nonful.date
         nonful.drop(['date', 'isful'], axis=1, inplace=True)
         return nonful
-
-
-
-
-data_init = pd.read_csv('D:/IT stuff/PY/Хакатон ИКТ 4/future_design_hackaton_4/data/report_initial.csv')
-#
-a = DataStorage(data=data_init)
-#
-print(0)

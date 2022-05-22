@@ -93,7 +93,16 @@ class Constants:
 
     ranges_weekday_prod = make_ranges_weekday_prod()
     ranges_weekend_prod = make_ranges_weekend_prod()
+
     fulfill_coefs_based_cat = pd.Series(
         dict(zip(['sc', 'w', 'sc_w', 'non'],
                  [1.05, 1, 1, 1.1]))
     )
+
+    questionnaire_act_mappings: Dict[str, str] = {
+        'Работа': 'w',
+        'Учеба': 'sc',
+        'Оба': 'sc_w',
+        'Ничего': 'non'
+    }
+
