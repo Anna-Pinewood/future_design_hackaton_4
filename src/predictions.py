@@ -99,13 +99,15 @@ def get_last_anomalies(df2_prod0, df2_prod1, df2_ful1, df2_ful0, df2_sleep_night
 
     # Получаем даты выгораний
     # Избыток непродуктивных часов - выгорание
-    df2_anomalies = df2_prod0_anomaly.loc[:, ['date']]
+    df2_anomalies = df2_prod0_anomaly.reset_index().rename(columns={'index': 'date'})
+    df2_anomalies = df2_anomalies[['date']]
 
     #  Избыток дневного сна - выгорание
   #  df2_anomalies = df2_anomalies.append(df2_by_days_sleep_anomaly.loc[:, ['date']], ignore_index=True)
 
     # Избыток ночного сна - выгорание
-    df2_anomalies = df2_anomalies.append(df2_by_days_sleep_night_maximum.loc[:, ['date']], ignore_index=True)
+    df2_by_days_sleep_night_maximum = df2_by_days_sleep_night_maximum.reset_index().rename(columns={'index': 'date'})
+    df2_anomalies = df2_anomalies.append(df2_by_days_sleep_night_maximum[['date']], ignore_index=True)
 
     # Переделаем из строки дату
     df2_anomalies['date'] = pd.to_datetime(df2_anomalies['date'])
@@ -129,8 +131,12 @@ def get_last_anomalies(df2_prod0, df2_prod1, df2_ful1, df2_ful0, df2_sleep_night
 def first_window(windowlength, day_anomaly, df2_prod0):
 
   data_first_window=pd.DataFrame(columns=['date','minutes'])
+  df2_prod0 = df2_prod0.reset_index().rename(columns={'index': 'date'})
   for day in df2_prod0.date:
-    if((day_anomaly - pd.to_datetime(day)).days<=windowlength and (day_anomaly - pd.to_datetime(day)).days>0):
+    diff_date = day_anomaly - pd.to_datetime(day)
+    diff_days = diff_date.days
+    if abs(diff_days) <=windowlength and abs(diff_days)>0:
+
       data_first_window=data_first_window.append(df2_prod0[df2_prod0.date==day])
   return data_first_window
 
@@ -138,8 +144,11 @@ def first_window(windowlength, day_anomaly, df2_prod0):
 def second_window(windowlength, day_anomaly, df2_prod0):
 
   data_second_window=pd.DataFrame(columns=['date','minutes'])
+  df2_prod0 = df2_prod0.reset_index().rename(columns={'index': 'date'})
   for day in df2_prod0.date:
-    if((day_anomaly - pd.to_datetime(day)).days<=windowlength*2 and (day_anomaly - pd.to_datetime(day)).days>windowlength):
+    diff_date = day_anomaly - pd.to_datetime(day)
+    diff_days = diff_date.days
+    if abs(diff_days) <= windowlength*2 and abs(diff_days) > windowlength:
       data_second_window=data_second_window.append(df2_prod0[df2_prod0.date==day])
   return data_second_window
 
@@ -246,15 +255,18 @@ def create_model(df2_prod0):
 
   X_train,X_test,y_train,y_test = make_train_test(df2_prod0)
   random_forest = RandomForestRegressor()
-  tuned_parameters  = {'n_estimators':[5,10,15,20],'max_depth':[2,4,6,8,10],'min_samples_split':np.arange(1,10)}
-  clf1 = GridSearchCV(random_forest,tuned_parameters)
-  clf1.fit(X_train,y_train)
-  random_forest = RandomForestRegressor(**clf1.best_params_)
+  # tuned_parameters  = {'n_estimators':[5,10,15,20],'max_depth':[2,4,6,8,10],'min_samples_split':np.arange(1,10)}
+  # clf1 = GridSearchCV(random_forest,tuned_parameters)
+  # clf1.fit(X_train,y_train)
+  # random_forest = RandomForestRegressor(**clf1.best_params_)
+  #
+  # random_forest.fit(X_train,y_train)
 
+
+  params = {'n_estimators': 15, 'max_depth': 2, 'min_samples_split': 2}
+  random_forest = RandomForestRegressor(**params)
   random_forest.fit(X_train,y_train)
-
   y_pred = random_forest.predict(X_test)
-  MODEL_BURN = random_forest
   return random_forest
 
 
@@ -292,12 +304,11 @@ def plot_pred_past(model_, df2_prod0):
     return (x_dates, y_past.values.tolist(), "Past"), (x_dates, y_pred1, "Pred")
 
 def first_burnout(df2_prod0,df2_prod1, df2_ful1, df2_ful0, df2_sleep_night, model=None):
-  random_forest = create_model(df2_prod0,model)
+  random_forest = model
   today = pd.to_datetime('today').normalize().date()
   date_range_ = pd.date_range(start=today, periods=14)
   data_pred =pd.DataFrame(columns=['date'] )
   data_pred.date=date_range_
-  date=date_range_
   data=data_pred
   data.index=data_pred.date
   data.index = data.index.to_pydatetime()
@@ -324,14 +335,24 @@ def first_burnout(df2_prod0,df2_prod1, df2_ful1, df2_ful0, df2_sleep_night, mode
         break
     if (pvalue>0):
       return  "Ближайшая спрогнозированная дата выгорания {}".format(df[df.index==index_window].date.tolist()[0].strftime('%Y-%m-%d'))
-      # x_dates = [d.strftime('%Y-%m-%d')
     else:
       return "В ближайшие две недели выгораний не ожидается"
   else:
     return "Ближайшая спрогнозированная дата выгорания {}".format(df_pred_burnout.loc[0,:].tolist()[0].strftime('%Y-%m-%d'))
 
 
-# a = DataStorage(answers={'procrastination': ('1',), 'work': ('Учеба',), 'workdaysleep': ('1:00',), 'weekendsleep': ('3:00',), 'ideal': ('2',)})
-#
+#a = DataStorage(answers={'procrastination': ('1',), 'work': ('Учеба',), 'workdaysleep': ('1:00',), 'weekendsleep': ('3:00',), 'ideal': ('2',)})
+model = create_model(a.nonprod)
+
+# print(first_burnout(
+#     a.nonprod,
+#     a.isprod,
+#     a.isful,
+#     a.nonful,
+#     a.sleep,
+#     model=model
+# ))
+
+
 # print(plot_pred_past(a.nonprod))
 
