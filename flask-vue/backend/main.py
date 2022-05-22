@@ -6,7 +6,9 @@ from prod_hours import run
 from process import DataStorage
 from advice import advice
 from plot_main_page import get_data_main_plot
-# from prediction_burnout import build_burnout_model
+from predictions import create_model
+from predictions import plot_pred_past
+
 
 app = Flask(__name__)
 
@@ -20,6 +22,7 @@ response_object = {
 }
 
 date = None
+model = None
 
 #функция для чтения csv, файл в response_object['csv_file']
 @app.route('/', methods=['GET', 'POST'])
@@ -85,11 +88,9 @@ def form():
         global date
         date = DataStorage(answers=user_data)        
         print(user_data)
+
     elif request.method == 'GET':
         chart_data = []
-        chart_data.append(([1, 2, 3, 4, 5, 6], [23, 46, 65, 76, 3, 4], 'chilling', rd.choice([['#ecc7ff', '#ffb5ea', '#ff87b7', '#d6abff'], ['#ae9eff', '#eb7ad2', '#f02bcf', '#aa70e0'],['#b5e6ff', '#26ffdb', '#73b7ff', '#c599ff']] ), rd.choice([['#ecc7ff', '#ffb5ea', '#ff87b7', '#d6abff'], ['#ae9eff', '#eb7ad2', '#f02bcf', '#aa70e0'],['#b5e6ff', '#26ffdb', '#73b7ff', '#c599ff']] )))
-        chart_data.append(([23, 56, 345, 48, 93, 64], [53, 36, 46, 71, 23, 54], 'having fun', rd.choice([['#ecc7ff', '#ffb5ea', '#ff87b7', '#d6abff'], ['#ae9eff', '#eb7ad2', '#f02bcf', '#aa70e0'],['#b5e6ff', '#26ffdb', '#73b7ff', '#c599ff']] ), rd.choice([['#ecc7ff', '#ffb5ea', '#ff87b7', '#d6abff'], ['#ae9eff', '#eb7ad2', '#f02bcf', '#aa70e0'],['#b5e6ff', '#26ffdb', '#73b7ff', '#c599ff']] )))
-
         return  {'chart': chart_data }
     return jsonify(response)
 
@@ -118,10 +119,10 @@ def prod():
     global date
     data = date.data_schedule
     answ = date.answers
+    if answ is not None:
+        weekday, weekend = run(answers=answ)
     if data is not None:
         weekday, weekend = run(data=data)
-    elif answ is not None:
-        weekday, weekend = run(answers=answ)
     return {'data': [(weekday.X, weekday.Y, weekday.name, rd.choice([['#ecc7ff', '#ffb5ea', '#ff87b7', '#d6abff'], ['#ae9eff', '#eb7ad2', '#f02bcf', '#aa70e0'],['#b5e6ff', '#26ffdb', '#73b7ff', '#c599ff']] ), rd.choice([['#ecc7ff', '#ffb5ea', '#ff87b7', '#d6abff'], ['#ae9eff', '#eb7ad2', '#f02bcf', '#aa70e0'],['#b5e6ff', '#26ffdb', '#73b7ff', '#c599ff']])), (weekend.X, weekend.Y, weekend.name, rd.choice([['#ecc7ff', '#ffb5ea', '#ff87b7', '#d6abff'], ['#ae9eff', '#eb7ad2', '#f02bcf', '#aa70e0'],['#b5e6ff', '#26ffdb', '#73b7ff', '#c599ff']] ), rd.choice([['#ecc7ff', '#ffb5ea', '#ff87b7', '#d6abff'], ['#ae9eff', '#eb7ad2', '#f02bcf', '#aa70e0'],['#b5e6ff', '#26ffdb', '#73b7ff', '#c599ff']]))  ]  }
 
 
@@ -130,7 +131,7 @@ def chart():
     print(date)
     if date is not None:
         res = get_data_main_plot(isprod=date.isprod,
-                       nonprod=date.isprod,
+                       nonprod=date.nonprod,
                        isful=date.isful,
                        nonful=date.nonful,
                        sleep=date.sleep)
@@ -140,7 +141,20 @@ def chart():
         return {'chart': 0 }
 
 
-    
+
+@app.route('/burnout', methods=['GET'])
+def burnout():
+    global model
+    global date
+    print('!!!', date)
+    if model is None:
+        model = create_model(date.nonprod)
+        print('model created')
+    res = plot_pred_past(model, date.nonprod)
+    res[0][1][14] = res[1][1][16]
+    return { "chart": res }
+
+
 
 @app.route('/shark', methods=['GET'])
 def shark():

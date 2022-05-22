@@ -1,12 +1,9 @@
 <template>
-  <div>
-    <b-button style="margin-top: 25px" @click="getInfo()">
+  <div style="margin-top: 25px; margin-left: 150px">
+    <b-button style="margin-top: 25px; margin-left: 150px" @click="getInfo()">
       Посмотреть статистику
     </b-button>
-    <div
-      v-if="loaded"
-      style="width: 800px; height: 700px display: flex; margin-left: 700px; margin-top: 25px flex-direction: row"
-    >
+    <div v-if="loaded" style="width: 800px; height: 700px">
       <div style="margin-top: 30px">
         <LineCo
           :chart-data="{
