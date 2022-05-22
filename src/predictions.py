@@ -255,17 +255,13 @@ def create_model(df2_prod0):
 
   X_train,X_test,y_train,y_test = make_train_test(df2_prod0)
   random_forest = RandomForestRegressor()
-  # tuned_parameters  = {'n_estimators':[5,10,15,20],'max_depth':[2,4,6,8,10],'min_samples_split':np.arange(1,10)}
-  # clf1 = GridSearchCV(random_forest,tuned_parameters)
-  # clf1.fit(X_train,y_train)
-  # random_forest = RandomForestRegressor(**clf1.best_params_)
-  #
-  # random_forest.fit(X_train,y_train)
+  tuned_parameters  = {'n_estimators':[5,10,15,20],'max_depth':[2,4,6,8,10],'min_samples_split':np.arange(1,10)}
+  clf1 = GridSearchCV(random_forest,tuned_parameters)
+  clf1.fit(X_train,y_train)
+  random_forest = RandomForestRegressor(**clf1.best_params_)
 
-
-  params = {'n_estimators': 15, 'max_depth': 2, 'min_samples_split': 2}
-  random_forest = RandomForestRegressor(**params)
   random_forest.fit(X_train,y_train)
+
   y_pred = random_forest.predict(X_test)
   return random_forest
 
@@ -340,10 +336,10 @@ def first_burnout(df2_prod0,df2_prod1, df2_ful1, df2_ful0, df2_sleep_night, mode
   else:
     return "Ближайшая спрогнозированная дата выгорания {}".format(df_pred_burnout.loc[0,:].tolist()[0].strftime('%Y-%m-%d'))
 
-
-#a = DataStorage(answers={'procrastination': ('1',), 'work': ('Учеба',), 'workdaysleep': ('1:00',), 'weekendsleep': ('3:00',), 'ideal': ('2',)})
-model = create_model(a.nonprod)
-
+#
+# a = DataStorage(answers={'procrastination': ('1',), 'work': ('Учеба',), 'workdaysleep': ('1:00',), 'weekendsleep': ('3:00',), 'ideal': ('2',)})
+# model = create_model(a.nonprod)
+#
 # print(first_burnout(
 #     a.nonprod,
 #     a.isprod,
@@ -354,5 +350,4 @@ model = create_model(a.nonprod)
 # ))
 
 
-# print(plot_pred_past(a.nonprod))
 
