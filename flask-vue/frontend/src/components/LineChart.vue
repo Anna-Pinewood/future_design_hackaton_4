@@ -15,26 +15,23 @@
       <div style="margin-top: 30px">
         <LineCo
           :chart-data="{
-            labels: [1, 2, 3, 4, 5, 6],
+            labels: chartData['chart'][0][0],
             datasets: [
               {
-                data: [12, 35, 56, null, null],
+                data: chartData['chart'][0][1],
                 label: chartData['chart'][0][2],
-                backgroundColor: chartData['chart'][0][3][0],
-                hoverBackgroundColor: chartData['chart'][0][4],
-                borderColor: chartData['chart'][1][3][0],
+                borderColor: 'e0ffff',
               },
               {
-                data: [null, null, 56, 65, 76],
+                data: chartData['chart'][1][1],
                 label: chartData['chart'][1][2],
                 borderColor: '#dc143c',
-                borderJoinStyle: chartData['chart'][1][3][0],
-                hoverBackgroundColor: chartData['chart'][1][4],
               },
             ],
           }"
           :chart-options="{ title: ['chart'][0][2], responsive: true }"
         />
+
         <h3 style="margin-top: 30px">
           Совет на основе обработки ваших данных:
         </h3>
@@ -59,11 +56,11 @@ export default {
   },
   methods: {
     getInfo() {
-      const path = "http://localhost:5000/user_form";
+      const path = "http://localhost:5000/burnout";
       axios
         .get(path)
         .then((res) => {
-          console.log(res.data["chart"][0]);
+          console.log(res.data["chart"]);
           this.ChartData = {
             label: "Your chart",
           };

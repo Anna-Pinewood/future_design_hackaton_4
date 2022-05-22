@@ -141,7 +141,7 @@
                 >Reset</b-button
               >
             </b-form>
-            <div v-show="showbar === true" style="width: 350px; height: 350px">
+            <div v-show="showbar === true" style="width: 800px; height: 800px">
               <DataLine />
             </div>
           </div>
