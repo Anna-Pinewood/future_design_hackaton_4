@@ -123,7 +123,7 @@ def prepared_result(res, name):
 
 # DATA IS NONE
 # CHANGE TYPE
-def run(data=None, type=1):
+def run(data=None, answers=None, type=1):
     df = predict_hours(data)
     df_weekday, df_weekend = split_weekdays(df)
     Result = namedtuple('Plot', 'X Y name')
@@ -133,8 +133,8 @@ def run(data=None, type=1):
     return result1, result2
 
 
-"""Запуск run()"""
-
+# """Запуск run()"""
+#
 # data_init = pd.read_csv('../data/report_initial.csv')
 #
 # a = process.DataStorage(data=data_init)
