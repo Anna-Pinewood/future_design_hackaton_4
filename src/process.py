@@ -1,7 +1,8 @@
 import pandas as pd
-from typing import Any, Dict, Optional
+import datetime
+from typing import Any, Dict, Optional, List
 from constants import Constants
-
+import numpy as np
 
 class DataStorage:
     def __init__(self,
@@ -14,12 +15,21 @@ class DataStorage:
         :type answers: Dict[str, Any], default=None
         """
         self.upload = True
+        self.data_schedule = None
+        self.answers = None
+
         if data is None:
             self.upload = False
             self.answers = answers
+
         else:
             self.data_schedule = self._base_pipeline(data)
             self.sleep = self._sleep_from_schedule(self.data_schedule)
+            self.isprod = self._set_productive_data()
+            self.nonprod = self._set_nonproductive_data()
+            self.isful = self._set_fulfill_data()
+            self.nonful = self._set_devastated_data()
+
 
     @staticmethod
     def _naming_and_types(data: pd.DataFrame) -> pd.DataFrame:
@@ -67,7 +77,7 @@ class DataStorage:
         :rtype: pd.DataFrame
         """
         data['isprod'] = data.act.map(mappings_prod).astype('category')
-        data['isfull'] = data.act.map(mappings_full).astype('category')
+        data['isful'] = data.act.map(mappings_full).astype('category')
         return data
 
     def _base_pipeline(self,
@@ -102,11 +112,45 @@ class DataStorage:
 
     @property
     def _prod_from_schedule(self) -> pd.DataFrame:
-        data = self.data_schedule.groupby(['date', 'isprod']).sum()['minutes'].reset_index('isprod')
+        """Data with date, productive_label, num of minutes."""
+        data = self.data_schedule.groupby(['date', 'isprod']).sum()['minutes'].reset_index('isprod').reset_index()
         return data
 
-# data_init = pd.read_csv('D:/IT stuff/PY/Хакатон ИКТ 4/future_design_hackaton_4/data/report_initial.csv')
+    def _set_productive_data(self) -> pd.DataFrame:
+        isprod = self._prod_from_schedule[self._prod_from_schedule.isprod == 1]
+        isprod.index = isprod.date
+        isprod.drop(['date', 'isprod'], axis=1, inplace=True)
+        return isprod
+
+    def _set_nonproductive_data(self) -> pd.DataFrame:
+        nonprod = self._prod_from_schedule[self._prod_from_schedule.isprod == 0]
+        nonprod.index = nonprod.date
+        nonprod.drop(['date', 'isprod'], axis=1, inplace=True)
+        return nonprod
+
+    @property
+    def _fulfill_from_schedule(self) -> pd.DataFrame:
+        """Data with date, fulfill label, num of minutes."""
+        data = self.data_schedule.groupby(['date', 'isful']).sum()['minutes'].reset_index('isful').reset_index()
+        return data
+
+    def _set_fulfill_data(self) -> pd.DataFrame:
+        isful = self._fulfill_from_schedule[self._fulfill_from_schedule.isful == 1]
+        isful.index = isful.date
+        isful.drop(['date', 'isful'], axis=1, inplace=True)
+        return isful
+
+    def _set_devastated_data(self) -> pd.DataFrame:
+        nonful = self._fulfill_from_schedule[self._fulfill_from_schedule.isful == 0]
+        nonful.index = nonful.date
+        nonful.drop(['date', 'isful'], axis=1, inplace=True)
+        return nonful
+
+
+
+
+data_init = pd.read_csv('D:/IT stuff/PY/Хакатон ИКТ 4/future_design_hackaton_4/data/report_initial.csv')
 #
-# a = DataStorage(data=data_init)
+a = DataStorage(data=data_init)
 #
-# print(0)
+print(0)
