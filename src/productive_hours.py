@@ -70,6 +70,7 @@ def predict_hours(data=None):
         df = df[['date', 'begin', 'end', 'isprod']]
         df['date'] = pd.to_datetime(df.date)
     df_full = add_empty_ranges(df)
+    df_full = df_full.sort_values(by=['begin'])
     df_full_distributed = distribute_ranges(df_full)
     df_full_distributed = df_full_distributed.dropna()
     return df_full_distributed
@@ -88,9 +89,6 @@ def group_ranges(data, type):
     data['ranges_day'] = data.ranges.apply(lambda x: ((x[0].hour, x[0].minute), (x[1].hour, x[1].minute)))
     df_group_day = data.groupby([data.week, data.ranges_day, data.isprod], as_index=False).agg({'ranges': 'count'})
     df_group_mean = need_row(df_group_day, type)
-    group_mean = df_group_mean.needed_range.mean()
-    # result_group = df_group_mean.loc[df_group_mean.needed_range >= group_mean]
-
     return df_group_mean
 
 
@@ -99,8 +97,8 @@ def union_to_hour(data):
     return data
 
 
-def get_score(data):
-    res_weeekdays = union_to_hour(group_ranges(data, 1)).groupby(['week', 'ranges_day_hour'], as_index=False).agg(
+def get_score(data, type):
+    res_weeekdays = union_to_hour(group_ranges(data, type)).groupby(['week', 'ranges_day_hour'], as_index=False).agg(
         {'needed_range': 'mean'})
     df_for_mean = res_weeekdays.groupby('ranges_day_hour', as_index=False).agg({'needed_range': lambda x: list(x)})
     df_for_mean['weights'] = df_for_mean.needed_range.apply(lambda x: pd.DataFrame(x).ewm(com=0.5).mean())
@@ -123,20 +121,23 @@ def prepared_result(res, name):
     return list(x_str(i) for i in res.ranges_day_hour), list(res.score.apply(lambda x: round(x, 3))), name
 
 
-def run(data=None):
+# DATA IS NONE
+# CHANGE TYPE
+def run(data=None, type=1):
     df = predict_hours(data)
     df_weekday, df_weekend = split_weekdays(df)
     Result = namedtuple('Plot', 'X Y name')
-    result1 = Result(*prepared_result(get_score(df_weekday), "weekday_hours"))
-    result2 = Result(*prepared_result(get_score(df_weekend), "weekend_hours"))
+    result1 = Result(*prepared_result(get_score(df_weekday, type=type), "Продуктивные часы в будние дни"))
+    result2 = Result(*prepared_result(get_score(df_weekend, type=type), "Продуктивные часы в выходные дни"))
 
     return result1, result2
 
 
 """Запуск run()"""
 
-data_init = pd.read_csv('../data/report_initial.csv')
-
-a = process.DataStorage(data=data_init)
-
-r = run(a.data_schedule)
+# data_init = pd.read_csv('../data/report_initial.csv')
+#
+# a = process.DataStorage(data=data_init)
+#
+# r = run(a.data_schedule)
+# print(r)
