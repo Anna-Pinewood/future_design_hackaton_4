@@ -7,8 +7,10 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from scipy.stats import ks_2samp
 from statistics import mean
-from fbprophet import Prophet
+#from fbprophet import Prophet
+from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
+from process import DataStorage
 
 # df2_by_days0 = pd.read_csv("df2_by_days.csv")
 # df2_full = pd.read_csv("df2_full.csv")
@@ -291,7 +293,7 @@ def prediction_burnout(model, data):
 
 
 def plot_pred_past(df2_prod0, model=None):
-    random_forest = create_model(df2_prod0, model)
+    model_ = create_model(df2_prod0, model)
     data_past = df2_prod0.tail(14)
     today = pd.to_datetime('today').normalize().date()
     date_range_ = pd.date_range(start=today, periods=14)
@@ -311,9 +313,12 @@ def plot_pred_past(df2_prod0, model=None):
     x_pred = data.loc[:, ['day', 'weekday', 'month']]
 
     x_pred = x_pred.reset_index(drop=True)
-    y_pred1 = [None] * 14 + prediction_burnout(model, x_pred).tolist()
+    y_pred1 = [None] * 14 + prediction_burnout(model_, x_pred).tolist()
     print(y_pred1)
 
     return (x_dates, y_past.values.tolist(), "Past"), (x_dates, y_pred1, "Pred")
 
+a = DataStorage(answers={'procrastination': ('1',), 'work': ('Учеба',), 'workdaysleep': ('1:00',), 'weekendsleep': ('3:00',), 'ideal': ('2',)})
+
+print(plot_pred_past.nonprod)
 
