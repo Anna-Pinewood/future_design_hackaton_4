@@ -33,10 +33,3 @@ def advice(a, days=7):
 
     return res
 
-"""Запуск run()"""
-
-data_init = pd.read_csv('../data/report_initial.csv')
-
-a = process.DataStorage(data=data_init)
-
-advice(a, days)
