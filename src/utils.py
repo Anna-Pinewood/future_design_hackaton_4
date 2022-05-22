@@ -1,6 +1,6 @@
 import pandas as pd
 import datetime
-from typing import Any, Dict, Optional, Tuple, List
+from typing import Tuple, List
 from constants import Constants
 import numpy as np
 
@@ -226,6 +226,8 @@ def generate_all(cat: str, perfect_score: int, sadness_score: int):
     notprod, isprod, sleep = add_burnouts(isprod, notprod, sleep, mean_nprod, std_nprod, mean_sleep, std_sleep, dates)
     isprod, sleep, isful = add_before_burn(isprod, notprod, sleep, mean_prod, std_prod, mean_sleep, std_sleep, dates, cat)
     notful = 24*60-isful
+    for data in  [isprod, notprod,isful,notful, sleep]:
+        data.index = pd.to_datetime(data.index)
     return (
         isprod,
         notprod,

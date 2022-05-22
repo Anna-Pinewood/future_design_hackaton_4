@@ -156,3 +156,6 @@ class DataStorage:
         nonful.index = nonful.date
         nonful.drop(['date', 'isful'], axis=1, inplace=True)
         return nonful
+
+a = DataStorage(answers={'procrastination': ('1',), 'work': ('Учеба',), 'workdaysleep': ('1:00',), 'weekendsleep': ('3:00',), 'ideal': ('2',)})
+#
